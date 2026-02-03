@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<title>النص الحي – كيف أقضي عطلتي</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700&display=swap" rel="stylesheet">
+
+<style>
+  body{font-family:'Almarai',sans-serif;background:#E7F7F4;margin:0;padding:0;direction:rtl}
+  .app-container{max-width:1100px;margin:32px auto;padding:0 16px}
+  .app-layout{display:flex;flex-wrap:wrap;gap:16px}
+  .card{background:#fff;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.1);padding:20px 22px}
+  .text-card{flex:1.6;min-width:300px}
+  .info-card{flex:1;min-width:280px}
+  h1{font-size:26px;margin-bottom:18px;color:#2F4858}
+  .paragraph{line-height:1.9;font-size:17px;margin-bottom:12px}
+  .word{cursor:pointer;padding:2px 4px;border-radius:6px;transition:background .15s ease}
+  .word:hover{background:#E0F2FF}
+  .has-vocab{background:#EEF2FF;box-shadow:0 0 0 1px #A5B4FC}
+  .verb-word{color:#1D4ED8;font-weight:700}
+  .info-title{font-size:18px;font-weight:700;margin-bottom:10px;color:#2F4858}
+  .info-word{font-size:22px;font-weight:800;margin-bottom:10px}
+  .info-label{font-size:13px;margin-bottom:4px;font-weight:600;color:#6b7280}
+  .info-value{font-size:15px;margin-bottom:10px}
+  .image-card{margin-top:12px;background:#F9FAFB;padding:10px;border-radius:12px;border:1px solid #E5E7EB;text-align:center}
+  .word-image{max-width:100%;max-height:150px;object-fit:contain;border-radius:10px;border:1px solid #e5e7eb;margin-bottom:8px}
+  .popup-card{position:absolute;background:#fff;border-radius:12px;padding:10px;box-shadow:0 10px 26px rgba(0,0,0,.25);max-width:260px;z-index:9999}
+  .popup-image{max-width:100%;max-height:130px;object-fit:contain;border-radius:10px;margin-bottom:8px;border:1px solid #eee}
+  .speak-btn{display:inline-block;padding:6px 14px;border-radius:999px;background:#1D4ED8;color:#fff;cursor:pointer;font-size:14px;margin-bottom:8px;text-align:center;user-select:none}
+  .speak-btn[aria-disabled="true"]{opacity:.5;cursor:not-allowed}
+  .definition-card{margin-top:8px;padding:8px 10px;border-radius:10px;background:#F3F4FF;border:1px solid #E5E7EB}
+  .definition-label{font-size:13px;font-weight:600;color:#4b5563;margin-bottom:4px}
+  .definition-value{font-size:14px;color:#111827}
+  .transliteration{font-size:14px;color:#6b7280;margin-bottom:10px;font-style:italic}
+</style>
+</head>
+
+<body>
+<div class="app-container">
+  <h1>كيف أقضي عطلتي – النص الحي التفاعلي</h1>
+
+  <div class="app-layout">
+    <div class="card text-card">
+      <div id="textContainer"></div>
+    </div>
+
+    <div class="card info-card">
+      <div class="info-title">معلومات الكلمة</div>
+      <div id="infoContent">اضغطي على كلمة من النص.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // 🔧 Helpful: show any JS error on screen
+  window.addEventListener("error", (e) => {
+    console.error(e.error || e.message);
+    const box = document.getElementById("infoContent");
+    if (box) box.innerHTML = `<div style="color:#b91c1c;font-weight:700">⚠️ خطأ في الكود</div><div style="font-size:13px;margin-top:6px">${(e.error && e.error.message) ? e.error.message : e.message}</div>`;
+  });
+
+  const RAW_BASE = "https://raw.githubusercontent.com/linahamze-hub/howIspendMyHoliday-Lina/main/";
+  const rawUrl = (fileName) => fileName ? encodeURI(RAW_BASE + fileName) : "";
+
+  const textParagraphs = [
+    "كيف أقضي عطلتي",
+    "هل تعرفون جزيرة كريت في اليونان؟",
+    "جزيرة كريت مكان رائع للإجازة في كل الفصول. أنا وأسرتي نحب قضاء عطلتنا في هذه الجزيرة لأنها جميلة وليست بعيدة.",
+    "عندما نذهب في الصيف، نستطيع السباحة وصيد السمك. ونستطيع أيضًا لعب الكرة الطائرة على الشاطئ والجلوس والاستمتاع بالشمس.",
+    "والدتي تقضي وقتها عادة في القراءة أو في الاستماع إلى الموسيقى، وأحيانًا تذهب مع صديقاتها للرقص أو للعب اليوغا.",
+    "ووالدي يحب النوم ويحب أيضًا الطعام اليوناني، ولهذا يذهب أحيانًا إلى دروس الطبخ.",
+    "عندما نذهب في الشتاء، يمكننا ركوب الخيل والمشي بين مزارع الزيتون في الجبال، ولكن لا يمكننا السباحة بسبب البرد.",
+    "أنا أحب التصوير، ولذلك عندي صور كثيرة للقرى الصغيرة الجميلة، وللبحر، وللماعز، وللطبيعة الجميلة."
+  ];
+
+  // ✅ FIX: add "وصيد السمك" as a recognized phrase (same target as "صيد السمك")
+  const PHRASES = ["صيد السمك","وصيد السمك","الكرة الطائرة","ركوب الخيل","مزارع الزيتون"];
+
+  const vocab = {
+    "جزيرة":   { type:"vocab", base:"جَزِيرَةٌ", letters:"ج ـ ز ـ ي ـ ر ـ ة", meaning:"island", transliteration:"jazīra",
+                audioFile:"جزيرة.mp3", imageFile:"جزيرة.jpg" },
+
+    "الإجازة": { type:"vocab", base:"الإِجَازَةُ", letters:"ا ـ ل ـ إ ـ ج ـ ا ـ ز ـ ة", meaning:"vacation", transliteration:"al-ijāza",
+                audioFile:"الإجازة.mp3", imageFile:"الإجازة.jpg" },
+
+    "الفصول":  { type:"vocab", base:"الفُصُولُ", letters:"ا ـ ل ـ ف ـ ص ـ و ـ ل", meaning:"seasons", transliteration:"al-fuṣūl",
+                audioFile:"الفصول.mp3", imageFile:"الفصول.jpg" },
+
+    "أقضي":    { type:"verb", base:"أَقْضِي", letters:"أ ـ ق ـ ض ـ ي", meaning:"I spend (time)", transliteration:"aqḍī",
+                audioFile:"أقضي.mp3", imageFile:"" },
+
+    "جميلة":   { type:"vocab", base:"جَمِيلَةٌ", letters:"ج ـ م ـ ي ـ ل ـ ة", meaning:"beautiful (f.)", transliteration:"jamīla",
+                audioFile:"جميلة.mp3", imageFile:"جميلة.jpg" },
+
+    "وقت":     { type:"vocab", base:"وَقْتٌ", letters:"و ـ ق ـ ت", meaning:"time", transliteration:"waqt",
+                audioFile:"وقت.mp3", imageFile:"وقت.jpg" },
+
+    "بعيدة":   { type:"vocab", base:"بَعِيدَةٌ", letters:"ب ـ ع ـ ي ـ د ـ ة", meaning:"far (f.)", transliteration:"baʿīda",
+                audioFile:"بعيدة.mp3", imageFile:"" },
+
+    "الصيف":   { type:"vocab", base:"الصَّيْفُ", letters:"ا ـ ل ـ ص ـ ي ـ ف", meaning:"summer", transliteration:"aṣ-ṣayf",
+                audioFile:"الصيف.mp3", imageFile:"الصيف.jpg" },
+
+    "نستطيع":  { type:"verb", base:"نَسْتَطِيعُ", letters:"ن ـ س ـ ت ـ ط ـ ي ـ ع", meaning:"we can", transliteration:"nastaṭīʿ",
+                audioFile:"نستطيع.mp3", imageFile:"" },
+
+    "السباحة": { type:"vocab", base:"السِّبَاحَةُ", letters:"ا ـ ل ـ س ـ ب ـ ا ـ ح ـ ة", meaning:"swimming", transliteration:"as-sibāḥa",
+                audioFile:"السباحة.mp3", imageFile:"السباحة.jpg" },
+
+    // Keep canonical phrase
+    "صيد السمك":{ type:"vocab", base:"صَيْدُ السَّمَكِ", letters:"ص ـ ي ـ د / ا ـ ل ـ س ـ م ـ ك", meaning:"fishing", transliteration:"ṣayd as-samak",
+                audioFile:"صيد السمك.mp3", imageFile:"صيد السمك.jpg" },
+
+    "اللعب":   { type:"vocab", base:"اللَّعِبُ", letters:"ا ـ ل ـ ل ـ ع ـ ب", meaning:"playing", transliteration:"al-laʿb",
+                audioFile:"للعب.mp3", imageFile:"اللعب.jpg" },
+
+    "الكرة الطائرة":{ type:"vocab", base:"الكُرَةُ الطَّائِرَةُ", letters:"ا ـ ل ـ ك ـ ر ـ ة / ا ـ ل ـ ط ـ ا ـ ئ ـ ر ـ ة", meaning:"volleyball", transliteration:"al-kura aṭ-ṭāʾira",
+                audioFile:"الكرة الطائرة.mp3", imageFile:"الكرة الطائرة.jpg" },
+
+    "الشاطئ":  { type:"vocab", base:"الشَّاطِئُ", letters:"ا ـ ل ـ ش ـ ا ـ ط ـ ئ", meaning:"beach", transliteration:"ash-shāṭiʾ",
+                audioFile:"شاطئ.mp3", imageFile:"الشاطئ.jpg" },
+
+    "الجلوس":  { type:"vocab", base:"الجُلُوسُ", letters:"ا ـ ل ـ ج ـ ل ـ و ـ س", meaning:"sitting", transliteration:"al-julūs",
+                audioFile:"الجلوس.mp3", imageFile:"نجلس.jpg" },
+
+    "الاستمتاع":{ type:"vocab", base:"الاسْتِمْتَاعُ", letters:"ا ـ ل ـ ا ـ س ـ ت ـ م ـ ت ـ ا ـ ع", meaning:"enjoying", transliteration:"al-istimtāʿ",
+                audioFile:"أستمتع.mp3", imageFile:"" },
+
+    "القراءة": { type:"vocab", base:"القِرَاءَةُ", letters:"ا ـ ل ـ ق ـ ر ـ ا ـ ء ـ ة", meaning:"reading", transliteration:"al-qirāʾa",
+                audioFile:"القراءة.mp3", imageFile:"القراءة.jpg" },
+
+    "الموسيقى":{ type:"vocab", base:"المُوسِيقَى", letters:"ا ـ ل ـ م ـ و ـ س ـ ي ـ ق ـ ى", meaning:"music", transliteration:"al-mūsīqā",
+                audioFile:"الموسيقى.mp3", imageFile:"الموسيقى.jpg" },
+
+    "الرقص":   { type:"vocab", base:"الرَّقْصُ", letters:"ا ـ ل ـ ر ـ ق ـ ص", meaning:"dancing", transliteration:"ar-raqṣ",
+                audioFile:"الرقص.mp3", imageFile:"لرقص.jpg" },
+
+    "اليوغا":  { type:"vocab", base:"الْيُوغَا", letters:"ا ـ ل ـ ي ـ و ـ غ ـ ا", meaning:"yoga", transliteration:"al-yūghā",
+                audioFile:"اليوغا.mp3", imageFile:"اليوغا.jpg" },
+
+    "يحب":     { type:"verb", base:"يُحِبُّ", letters:"ي ـ ح ـ ب", meaning:"likes/loves", transliteration:"yuḥibb",
+                audioFile:"يحب.mp3", imageFile:"يحب.jpg" },
+
+    "النوم":   { type:"vocab", base:"النَّوْمُ", letters:"ا ـ ل ـ ن ـ و ـ م", meaning:"sleep", transliteration:"an-nawm",
+                audioFile:"النوم.mp3", imageFile:"النوم.jpg" },
+
+    "الطعام":  { type:"vocab", base:"الطَّعَامُ", letters:"ا ـ ل ـ ط ـ ع ـ ا ـ م", meaning:"food", transliteration:"aṭ-ṭaʿām",
+                audioFile:"الطعام.mp3", imageFile:"الطعام.jpg" },
+
+    "دروس":    { type:"vocab", base:"دُرُوسٌ", letters:"د ـ ر ـ و ـ س", meaning:"lessons", transliteration:"durūs",
+                audioFile:"دروس.mp3", imageFile:"دروس.jpg" },
+
+    "الطبخ":   { type:"vocab", base:"الطَّبْخُ", letters:"ا ـ ل ـ ط ـ ب ـ خ", meaning:"cooking", transliteration:"aṭ-ṭabkh",
+                audioFile:"الطبخ.mp3", imageFile:"الطبخ.jpg" },
+
+    "الشتاء":  { type:"vocab", base:"الشِّتَاءُ", letters:"ا ـ ل ـ ش ـ ت ـ ا ـ ء", meaning:"winter", transliteration:"ash-shitāʾ",
+                audioFile:"الشتاء.mp3", imageFile:"الشتاء.jpg" },
+
+    "يمكننا":  { type:"verb", base:"يُمْكِنُنَا", letters:"ي ـ م ـ ك ـ ن ـ ن ـ ا", meaning:"we can", transliteration:"yumkinunā",
+                audioFile:"يمكننا.mp3", imageFile:"" },
+
+    "ركوب الخيل":{ type:"vocab", base:"رُكُوبُ الخَيْلِ", letters:"ر ـ ك ـ و ـ ب / ا ـ ل ـ خ ـ ي ـ ل", meaning:"horse riding", transliteration:"rukūb al-khayl",
+                audioFile:"ركوب الخيل.mp3", imageFile:"ركوب الخيل.jpg" },
+
+    "المشي":   { type:"vocab", base:"المَشْيُ", letters:"ا ـ ل ـ م ـ ش ـ ي", meaning:"walking", transliteration:"al-mashy",
+                audioFile:"المشي.mp3", imageFile:"المشي.jpg" },
+
+    "مزارع الزيتون":{ type:"vocab", base:"مَزَارِعُ الزَّيْتُونِ", letters:"م ـ ز ـ ا ـ ر ـ ع / ا ـ ل ـ ز ـ ي ـ ت ـ و ـ ن", meaning:"olive farms", transliteration:"mazāriʿ az-zaytūn",
+                audioFile:"مزارع الزيتون.mp3", imageFile:"مزارع الزيتون.jpg" },
+
+    "الجبال":  { type:"vocab", base:"الجِبَالُ", letters:"ا ـ ل ـ ج ـ ب ـ ا ـ ل", meaning:"mountains", transliteration:"al-jibāl",
+                audioFile:"الجبال.mp3", imageFile:"الجبال.jpg" },
+
+    "البرد":   { type:"vocab", base:"البَرْدُ", letters:"ا ـ ل ـ ب ـ ر ـ د", meaning:"cold", transliteration:"al-bard",
+                audioFile:"البرد.mp3", imageFile:"البرد.jpg" },
+
+    "التصوير": { type:"vocab", base:"التَّصْوِيرُ", letters:"ا ـ ل ـ ت ـ ص ـ و ـ ي ـ ر", meaning:"photography", transliteration:"at-taṣwīr",
+                audioFile:"التصوير.mp3", imageFile:"التصوير.jpg" },
+
+    "صور":     { type:"vocab", base:"صُوَرٌ", letters:"ص ـ و ـ ر", meaning:"photos", transliteration:"ṣuwar",
+                audioFile:"صور.mp3", imageFile:"صور.jpg" },
+
+    "البحر":   { type:"vocab", base:"البَحْرُ", letters:"ا ـ ل ـ ب ـ ح ـ ر", meaning:"sea", transliteration:"al-baḥr",
+                audioFile:"البحر.mp3", imageFile:"بحر.jpg" },
+
+    "الماعز":  { type:"vocab", base:"المَاعِزُ", letters:"ا ـ ل ـ م ـ ا ـ ع ـ ز", meaning:"goats", transliteration:"al-māʿiz",
+                audioFile:"الماعز.mp3", imageFile:"للماعز.jpg" },
+
+    "الطبيعة": { type:"vocab", base:"الطَّبِيعَةُ", letters:"ا ـ ل ـ ط ـ ب ـ ي ـ ع ـ ة", meaning:"nature", transliteration:"aṭ-ṭabīʿa",
+                audioFile:"الطبيعة.mp3", imageFile:"للطبيعة.jpg" },
+
+    "قرية":    { type:"vocab", base:"قَرْيَةٌ", letters:"ق ـ ر ـ ي ـ ة", meaning:"village", transliteration:"qarya",
+                audioFile:"قرية.mp3", imageFile:"قرية.jpg" },
+
+    "العطلة":  { type:"vocab", base:"العُطْلَةُ", letters:"ا ـ ل ـ ع ـ ط ـ ل ـ ة", meaning:"holiday", transliteration:"al-ʿuṭla",
+                audioFile:"العطلة.mp3", imageFile:"عطلتنا.jpg" },
+
+    "تستمع":   { type:"verb", base:"تَسْتَمِعُ", letters:"ت ـ س ـ ت ـ م ـ ع", meaning:"she listens", transliteration:"tastamiʿ",
+                audioFile:"تستمع.mp3", imageFile:"" },
+  };
+
+  // ✅ KEY FIX: "وصيد السمك" points to same data as "صيد السمك"
+  vocab["وصيد السمك"] = vocab["صيد السمك"];
+
+  // Build URLs
+  Object.keys(vocab).forEach(k => {
+    vocab[k].audio = vocab[k].audioFile ? rawUrl(vocab[k].audioFile) : "";
+    vocab[k].image = vocab[k].imageFile ? rawUrl(vocab[k].imageFile) : "";
+  });
+
+  // Attached forms
+  vocab["عطلتي"] = vocab["العطلة"];
+  vocab["عطلتنا"] = vocab["العطلة"];
+  vocab["للإجازة"] = vocab["الإجازة"];
+  vocab["بالإجازة"] = vocab["الإجازة"];
+  vocab["للبحر"] = vocab["البحر"];
+  vocab["وللبحر"] = vocab["البحر"];
+  vocab["للماعز"] = vocab["الماعز"];
+  vocab["وللماعز"] = vocab["الماعز"];
+  vocab["للطبيعة"] = vocab["الطبيعة"];
+  vocab["وللطبيعة"] = vocab["الطبيعة"];
+  vocab["للرقص"] = vocab["الرقص"];
+  vocab["وللرقص"] = vocab["الرقص"];
+  vocab["للعب"] = vocab["اللعب"];
+  vocab["وللعب"] = vocab["اللعب"];
+  vocab["القرية"] = vocab["قرية"];
+  vocab["للقرية"] = vocab["قرية"];
+  vocab["وللقرية"] = vocab["قرية"];
+  vocab["بالشاطئ"] = vocab["الشاطئ"];
+  vocab["الشاطيء"] = vocab["الشاطئ"];
+
+  const textContainer = document.getElementById("textContainer");
+  const infoContent = document.getElementById("infoContent");
+  let popup = null;
+
+  function stripPunctuation(t) { return t.replace(/[.,!?،؛"«»()؟]/g, ""); }
+
+  function playAudio(url){
+    if(!url) return;
+    const a = new Audio(url);
+    a.addEventListener("error", () => alert("Audio file not found:\n" + url));
+    a.play().catch(() => alert("Browser blocked audio playback. Try clicking again."));
+  }
+
+  // ✅ FIX: phrase tokenization supports the leading و (وصيد السمك)
+  function tokenizeWithPhrases(sentence) {
+    const words = sentence.split(" ");
+    const out = [];
+    for (let i=0;i<words.length;i++){
+      if (i < words.length - 1) {
+        const first = stripPunctuation(words[i]);
+        const second = stripPunctuation(words[i+1]);
+        const two = first + " " + second;
+
+        // Try removing leading و from first word
+        const twoWithoutWaw = (first.startsWith("و") ? first.slice(1) : first) + " " + second;
+
+        if (PHRASES.includes(two)) {
+          out.push({ raw: words[i] + " " + words[i+1], key: two, isPhrase: true });
+          i++; continue;
+        }
+        if (PHRASES.includes(twoWithoutWaw)) {
+          out.push({ raw: words[i] + " " + words[i+1], key: twoWithoutWaw, isPhrase: true });
+          i++; continue;
+        }
+      }
+      out.push({ raw: words[i], key: null, isPhrase: false });
+    }
+    return out;
+  }
+
+  function normalizeKey(word) {
+    const clean = stripPunctuation(word).replace(/ـ/g,"");
+    if (vocab[clean]) return clean;
+
+    const multiPrefixes = ["وال","فال","بال","كال","لل"];
+    for (const mp of multiPrefixes){
+      if (clean.startsWith(mp) && clean.length > mp.length + 1){
+        const w = clean.slice(mp.length);
+        if (vocab[w]) return w;
+        if (vocab["ال"+w]) return "ال"+w;
+      }
+    }
+    const single = ["و","ف","ب","ل","ك"];
+    let temp = clean;
+    for (let i=0;i<3;i++){
+      if (single.includes(temp[0]) && temp.length > 2){
+        temp = temp.slice(1);
+        if (vocab[temp]) return temp;
+        if (vocab["ال"+temp]) return "ال"+temp;
+      }
+    }
+    return clean;
+  }
+
+  // Render passage
+  textParagraphs.forEach(par => {
+    const p = document.createElement("p");
+    p.className = "paragraph";
+
+    const tokens = tokenizeWithPhrases(par);
+    tokens.forEach((tok, i) => {
+      const span = document.createElement("span");
+      span.textContent = tok.raw;
+      span.className = "word";
+
+      const key = tok.isPhrase ? tok.key : normalizeKey(tok.raw);
+      if (vocab[key]) {
+        span.dataset.key = key;
+        span.classList.add("has-vocab");
+        if (vocab[key].type === "verb") span.classList.add("verb-word");
+      }
+
+      p.appendChild(span);
+      if (i !== tokens.length - 1) p.appendChild(document.createTextNode(" "));
+    });
+
+    textContainer.appendChild(p);
+  });
+
+  textContainer.addEventListener("click", (e) => {
+    const key = e.target.dataset.key;
+    if (!key) return;
+    const entry = vocab[key];
+    showInfo(entry);
+    showPopup(entry, e.target);
+  });
+
+  function showInfo(entry){
+    infoContent.innerHTML = `
+      <div class="info-word">${entry.base || ""}</div>
+      <div class="transliteration">${entry.transliteration || ""}</div>
+
+      <div class="definition-card">
+        <div class="definition-label">Meaning (English):</div>
+        <div class="definition-value">${entry.meaning || "—"}</div>
+      </div>
+
+      <div class="info-label" style="margin-top:10px;">Letters:</div>
+      <div class="info-value">${entry.letters || "—"}</div>
+
+      ${entry.image ? `
+        <div class="image-card">
+          <img src="${entry.image}" class="word-image" alt="">
+        </div>` : ""}
+
+      ${entry.audio ? `<div class="speak-btn" id="infoSpeakBtn">🔊 Listen</div>`
+                   : `<div class="speak-btn" aria-disabled="true">🔊 (no audio)</div>`}
+    `;
+
+    const btn = document.getElementById("infoSpeakBtn");
+    if (btn) btn.addEventListener("click", () => playAudio(entry.audio));
+  }
+
+  function showPopup(entry, anchor){
+    if (popup) popup.remove();
+
+    popup = document.createElement("div");
+    popup.className = "popup-card";
+
+    const speakBtnHtml = entry.audio
+      ? `<div class="speak-btn" id="popSpeakBtn">🔊 Listen</div>`
+      : `<div class="speak-btn" aria-disabled="true">🔊 (no audio)</div>`;
+
+    popup.innerHTML = `
+      <div class="info-word" style="margin-bottom:6px;">${entry.base || ""}</div>
+      <div class="transliteration" style="margin-bottom:6px;">${entry.transliteration || ""}</div>
+
+      <div class="definition-card" style="margin-top:6px;">
+        <div class="definition-label">Meaning (English):</div>
+        <div class="definition-value">${entry.meaning || "—"}</div>
+      </div>
+
+      ${entry.image ? `<img src="${entry.image}" class="popup-image" alt="">` : ""}
+      ${speakBtnHtml}
+
+      <div class="info-label" style="margin-top:8px;">Letters:</div>
+      <div class="info-value">${entry.letters || "—"}</div>
+    `;
+
+    document.body.appendChild(popup);
+
+    const rect = anchor.getBoundingClientRect();
+    const popRect = popup.getBoundingClientRect();
+
+    let top = rect.top + window.scrollY - popRect.height - 12;
+    let left = rect.left + window.scrollX;
+
+    if (top < 0) top = rect.bottom + window.scrollY + 12;
+
+    const maxLeft = window.scrollX + document.documentElement.clientWidth - popRect.width - 12;
+    if (left > maxLeft) left = maxLeft;
+    if (left < 12) left = 12;
+
+    popup.style.top = top + "px";
+    popup.style.left = left + "px";
+
+    const btn = document.getElementById("popSpeakBtn");
+    if (btn) btn.addEventListener("click", () => playAudio(entry.audio));
+
+    setTimeout(() => document.addEventListener("click", outsideClickClose), 0);
+  }
+
+  function outsideClickClose(ev){
+    if (!popup) return;
+    const clickedInsidePopup = popup.contains(ev.target);
+    const clickedWord = ev.target.classList && ev.target.classList.contains("word");
+    if (!clickedInsidePopup && !clickedWord) {
+      popup.remove();
+      popup = null;
+      document.removeEventListener("click", outsideClickClose);
+    }
+  }
+
+});
+</script>
+</body>
+</html>
